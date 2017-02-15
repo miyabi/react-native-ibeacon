@@ -120,6 +120,12 @@ RCT_EXPORT_METHOD(requestWhenInUseAuthorization)
     }
 }
 
+RCT_EXPORT_METHOD(requestStateForRegion:(NSDictionary *)dict) {
+    if ([self.locationManager respondsToSelector:@selector(requestStateForRegion:)]) {
+        [self.locationManager requestStateForRegion:[self convertDictToBeaconRegion:dict]];
+    }
+}
+
 RCT_EXPORT_METHOD(getAuthorizationStatus:(RCTResponseSenderBlock)callback)
 {
     callback(@[[self nameForAuthorizationStatus:[CLLocationManager authorizationStatus]]]);
@@ -248,6 +254,33 @@ RCT_EXPORT_METHOD(shouldDropEmptyRanges:(BOOL)drop)
                             };
     
     [self.bridge.eventDispatcher sendDeviceEventWithName:@"regionDidExit" body:event];
+}
+
+-(void)locationManager:(CLLocationManager *)manager
+     didDetermineState:(CLRegionState)state
+             forRegion:(nonnull CLBeaconRegion *)region {
+    NSString *stateString = nil;
+    switch (state) {
+        case CLRegionStateInside:
+            stateString = @"inside";
+            break;
+            
+        case CLRegionStateOutside:
+            stateString = @"outside";
+            break;
+            
+        default:
+            stateString = @"unknown";
+            break;
+    }
+    
+    NSDictionary *event = @{
+                            @"region": region.identifier,
+                            @"uuid": [region.proximityUUID UUIDString],
+                            @"state": stateString,
+                            };
+    
+    [self.bridge.eventDispatcher sendDeviceEventWithName:@"didDetermineStateForRegion" body:event];
 }
 
 @end
